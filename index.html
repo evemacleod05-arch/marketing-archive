@@ -661,12 +661,6 @@
 
     <header>
         <div class="logo">MCA <span>MARKETING CAMPAIGN ARCHIVE</span></div>
-        <nav>
-            <a href="#" onclick="closeImmersiveView()"></a>
-            <a href="#"></a>
-            <a href="#"></a>
-            <a href="#"></a>
-        </nav>
     </header>
 
     <div class="container">
@@ -687,15 +681,6 @@
                     <input type="text" id="form-strategies" placeholder="Core Strategies (comma separated)" required>
                     <button type="submit" class="btn-submit">Publish to Workspace</button>
                 </form>
-            </div>
-
-            <div class="filter-section">
-                <h3>Filter Workspace</h3>
-                <select id="filter-brand" onchange="filterCampaigns()">
-                    <option value="">All Brands</option>
-                    <option value="GAP">GAP</option>
-                    <option value="American Eagle">American Eagle</option>
-                </select>
             </div>
         </aside>
 
@@ -956,34 +941,16 @@
                 `;
                 grid.appendChild(card);
             });
-            updateBrandDropdownOptions();
-        }
-
-        function updateBrandDropdownOptions() {
-            const dropdown = document.getElementById('filter-brand');
-            const currentSelection = dropdown.value;
-            const uniqueBrands = [...new Set(campaigns.map(c => c.brand))];
-            
-            dropdown.innerHTML = '<option value="">All Brands</option>';
-            uniqueBrands.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b;
-                opt.innerText = b;
-                if (b === currentSelection) opt.selected = true;
-                dropdown.appendChild(opt);
-            });
         }
 
         function filterCampaigns() {
             const searchVal = document.getElementById('search-input').value.toLowerCase();
-            const brandVal = document.getElementById('filter-brand').value;
 
             const filtered = campaigns.filter(c => {
                 const matchesSearch = c.title.toLowerCase().includes(searchVal) || 
                                       c.brand.toLowerCase().includes(searchVal) || 
                                       c.desc.toLowerCase().includes(searchVal);
-                const matchesBrand = brandVal === "" || c.brand === brandVal;
-                return matchesSearch && matchesBrand;
+                return matchesSearch;
             });
             renderCampaignsGrid(filtered);
         }
