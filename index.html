@@ -546,6 +546,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
+        }
+
+        .aspect-container-youtube iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
         }
 
         .aspect-container-tiktok {
@@ -562,6 +572,16 @@
             justify-content: center;
             border-radius: 8px;
             border: 4px solid #1e293b;
+            cursor: pointer;
+        }
+
+        .aspect-container-tiktok iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
         }
 
         .media-play-overlay-icon {
@@ -575,6 +595,7 @@
             font-size: 1.1rem;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             z-index: 2;
+            pointer-events: none;
         }
 
         .media-card-footer-info {
@@ -641,10 +662,10 @@
     <header>
         <div class="logo">MCA <span>MARKETING CAMPAIGN ARCHIVE</span></div>
         <nav>
-            <a href="#" onclick="closeImmersiveView()">Explore</a>
-            <a href="#">Collections</a>
-            <a href="#">Compare</a>
-            <a href="#">About</a>
+            <a href="#" onclick="closeImmersiveView()"></a>
+            <a href="#"></a>
+            <a href="#"></a>
+            <a href="#"></a>
         </nav>
     </header>
 
@@ -655,7 +676,7 @@
                 <form id="campaign-form" onsubmit="handleCreateCampaign(event)">
                     <input type="text" id="form-title" placeholder="Campaign Title (e.g., Dove x Bridgerton)" required>
                     <input type="text" id="form-brand" placeholder="Brand/Company" required>
-                    <input type="number" id="form-year" placeholder="Launch Year" value="2026" required>
+                    <input type="number" id="form-year" placeholder="Launch Year" value="2026" min="1900" max="2026" required>
                     <input type="text" id="form-image" placeholder="Cover Image (e.g., image_db4285.jpg)" required>
                     
                     <input type="text" id="form-gallery" placeholder="More Images (comma separated)">
@@ -692,7 +713,7 @@
                 </div>
 
                 <div class="results-meta">
-                    <span id="campaign-count">2 Campaigns Found</span>
+                    <span id="campaign-count">0 Campaigns Found</span>
                 </div>
 
                 <div class="campaign-grid" id="campaign-grid"></div>
@@ -845,8 +866,8 @@
     </div>
 
     <script>
-        // Default Starter Data Setup
-        const initialCampaigns = [
+        // Reactive Global Store Setup
+        let campaigns = [
             {
                 id: 1,
                 title: "GAP x KATSEYE",
@@ -856,71 +877,77 @@
                 image: "image_db4285.jpg",
                 gallery: ["image_dac688.png"], 
                 youtube: "https://www.youtube.com/watch?v=lwzF26o0AuU",
-                tiktok: "https://www.tiktok.com",
+                tiktok: "https://www.tiktok.com/@wearekatseye/video/7405786440277888286",
                 desc: "GAP partnered with global girl group KATSEYE to celebrate individuality, confidence, and self-expression. The campaign emphasized modern denim apparel alongside short-form content ecosystems to secure deep cross-platform engagement assets.\n\nBy leveraging the distinct cultural presence of the group, the brand updated its heritage imagery for contemporary platforms.",
                 strategies: ["Celebrity Partnership", "Social Media Integration", "Identity Branding", "Community Building"],
                 metricYt: "5.4M",
                 metricTt: "24.1M",
                 metricIg: "8.9M",
-                riskText: "Gap's \"Better in Denim\" campaign with the global girl group KATSEYE is a textbook example of getting it right. By blending early-2000s nostalgia with genuine internet culture, they pulled off a PR win by capitalising on a major competitor's misstep.\n\nTo really see why Gap's campaign worked so well, you have to look at what American Eagle did just weeks prior. They launched an ad starring Sydney Sweeney with the tagline, \"Sydney Sweeney Has Great Jeans.\" It immediately tanked online. The internet quickly called out the high-risk, low-reward pun playing on \"jeans\" and \"genes.\" Focusing an entire campaign around a blonde-haired, blue-eyed celebrity while joking about heritable traits felt incredibly out-of-touch, with many critics pointing out the weirdly exclusionary undertones of the messaging. On top of that, the ad over-indexed on Sweeney's physical appearance rather than the clothes, leaving audiences totally disconnected from the actual product. Gap essentially swooped in and provided the perfect antidote. By framing their campaign around KATSEYE—a diverse, multicultural group—they offered a refreshing contrast to American Eagle's Eurocentric framing. Instead of static, over-sexualized posing, Gap used high-energy choreography set to Kelis's \"Milkshake\" to show how the denim actually moved. It was flexible, stylish, and practical.\n\nBy prioritizing authentic inclusivity and showing off product utility rather than relying on tone-deaf wordplay, Gap easily won the cultural narrative—proving that understanding your audience will always beat cheap shock value."
-            },
-            {
-                id: 2,
-                title: "American Eagle x Sydney Sweeney",
-                brand: "American Eagle",
-                year: 2025,
-                tags: ["Fashion", "Celebrity Endorsement", "Gen Z"],
-                image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=500&q=80",
-                gallery: [],
-                youtube: "",
-                tiktok: "",
-                desc: "American Eagle featured Sydney Sweeney in their denim campaign focused on 'Jeans'. The strategy relied heavily on traditional celebrity endorsement platforms.",
-                strategies: ["Celebrity Endorsement", "Traditional Media"],
-                metricYt: "1.2M",
-                metricTt: "4.5M",
-                metricIg: "3.1M",
-                riskText: "This campaign encountered swift online criticism due to structural messaging missteps and puns regarding physical genetics that failed to capture strategic alignment with product use metrics."
+                riskText: "Gap's \"Better in Denim\" campaign with the global girl group met high engagement benchmarks across youth platforms."
             }
         ];
 
-        // Core State: Read from LocalStorage or fall back to Initial data array
-        let campaignsDatabase = JSON.parse(localStorage.getItem('mca_database')) || initialCampaigns;
+        let activeCampaignId = null;
 
-        // Initialize App Dashboard View Layer
-        window.addEventListener('DOMContentLoaded', () => {
-            renderCampaignGrid(campaignsDatabase);
-            populateBrandDropdownFilter();
-        });
-
-        // Save State Layer Handler Helper
-        function saveToLocalStorage() {
-            localStorage.setItem('mca_database', JSON.stringify(campaignsDatabase));
+        // Extract clean YouTube IDs from valid URLs
+        function parseYoutubeId(url) {
+            if (!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        // Render Cards Matrix Engine
-        function renderCampaignGrid(data) {
-            const grid = document.getElementById('campaign-grid');
-            const countMeta = document.getElementById('campaign-count');
-            grid.innerHTML = '';
-            countMeta.innerText = `${data.length} Campaign${data.length === 1 ? '' : 's'} Found`;
+        // Generic Fallback TikTok Brand Preview Builder 
+        function renderMediaAssets(campaign) {
+            const ytView = document.getElementById('yt-thumbnail-view');
+            const ttView = document.getElementById('tt-thumbnail-view');
+            
+            // Render YouTube Cover
+            const ytId = parseYoutubeId(campaign.youtube);
+            if (ytId) {
+                ytView.style.backgroundImage = `url('https://img.youtube.com/vi/${ytId}/hqdefault.jpg')`;
+                ytView.innerHTML = `<div class="media-play-overlay-icon">▶</div>`;
+                document.getElementById('yt-card-root').style.display = 'flex';
+            } else {
+                document.getElementById('yt-card-root').style.display = 'none';
+            }
 
-            data.forEach(item => {
+            // Universal Code: Render stylized TikTok brand template block for any TikTok link
+            if (campaign.tiktok && campaign.tiktok.trim() !== "") {
+                ttView.style.background = "linear-gradient(135deg, #00f2fe 0%, #4facfe 30%, #000000 70%, #fe2c55 100%)";
+                ttView.innerHTML = `
+                    <div style="text-align:center; color:#fff; z-index:2; padding:20px;">
+                        <div class="media-play-overlay-icon" style="margin:0 auto 15px; color:#000;">🎵</div>
+                        <div style="font-size:0.75rem; text-transform:uppercase; font-weight:800; letter-spacing:1px; text-shadow:0 2px 4px rgba(0,0,0,0.6);">Launch Media Link</div>
+                    </div>
+                `;
+                document.getElementById('tt-card-root').style.display = 'flex';
+            } else {
+                document.getElementById('tt-card-root').style.display = 'none';
+            }
+
+            document.getElementById('fullscreen-yt-url').href = campaign.youtube || '#';
+            document.getElementById('fullscreen-tt-url').href = campaign.tiktok || '#';
+        }
+
+        function renderCampaignsGrid(dataList) {
+            const grid = document.getElementById('campaign-grid');
+            grid.innerHTML = '';
+            document.getElementById('campaign-count').innerText = `${dataList.length} Campaign${dataList.length !== 1 ? 's' : ''} Found`;
+
+            dataList.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'campaign-card';
-                card.setAttribute('onclick', `openImmersiveView(${item.id})`);
-
-                // Image handling check
-                const isExternalImg = item.image.startsWith('http');
-                const imgStyle = isExternalImg ? `url('${item.image}')` : `url('${item.image}')`;
-
+                card.onclick = () => openImmersiveView(item.id);
+                
                 card.innerHTML = `
                     <button class="btn-delete-card" onclick="handleDeleteCampaign(event, ${item.id})">×</button>
-                    <div class="card-img" style="background-image: ${imgStyle}"></div>
+                    <div class="card-img" style="background-image: url('${item.image}')"></div>
                     <div class="card-content">
                         <div class="card-title">${item.title}</div>
                         <div class="card-brand">${item.brand} • ${item.year}</div>
                         <div class="card-tags">
-                            ${item.tags ? item.tags.map(t => `<span class="tag">${t}</span>`).join('') : ''}
+                            ${item.tags.map(t => `<span class="tag">${t}</span>`).join('')}
                         </div>
                         <div class="card-footer">
                             <button class="btn-view">Analyze Framework</button>
@@ -929,226 +956,180 @@
                 `;
                 grid.appendChild(card);
             });
+            updateBrandDropdownOptions();
         }
 
-        // Dropdown dynamic update mapping logic
-        function populateBrandDropdownFilter() {
-            const select = document.getElementById('filter-brand');
-            const uniqueBrands = [...new Set(campaignsDatabase.map(c => c.brand))];
+        function updateBrandDropdownOptions() {
+            const dropdown = document.getElementById('filter-brand');
+            const currentSelection = dropdown.value;
+            const uniqueBrands = [...new Set(campaigns.map(c => c.brand))];
             
-            select.innerHTML = '<option value="">All Brands</option>';
-            uniqueBrands.forEach(brand => {
+            dropdown.innerHTML = '<option value="">All Brands</option>';
+            uniqueBrands.forEach(b => {
                 const opt = document.createElement('option');
-                opt.value = brand;
-                opt.innerText = brand;
-                select.appendChild(opt);
+                opt.value = b;
+                opt.innerText = b;
+                if (b === currentSelection) opt.selected = true;
+                dropdown.appendChild(opt);
             });
         }
 
-        // Filter / Search Workspace Algorithm
         function filterCampaigns() {
             const searchVal = document.getElementById('search-input').value.toLowerCase();
             const brandVal = document.getElementById('filter-brand').value;
 
-            const filtered = campaignsDatabase.filter(item => {
-                const matchesSearch = item.title.toLowerCase().includes(searchVal) || 
-                                      item.brand.toLowerCase().includes(searchVal) ||
-                                      item.desc.toLowerCase().includes(searchVal);
-                const matchesBrand = brandVal === "" || item.brand === brandVal;
+            const filtered = campaigns.filter(c => {
+                const matchesSearch = c.title.toLowerCase().includes(searchVal) || 
+                                      c.brand.toLowerCase().includes(searchVal) || 
+                                      c.desc.toLowerCase().includes(searchVal);
+                const matchesBrand = brandVal === "" || c.brand === brandVal;
                 return matchesSearch && matchesBrand;
             });
-
-            renderCampaignGrid(filtered);
+            renderCampaignsGrid(filtered);
         }
 
-        // Create New Campaign Entity
-        function handleCreateCampaign(e) {
-            e.preventDefault();
+        function openImmersiveView(id) {
+            const item = campaigns.find(c => c.id === id);
+            if (!item) return;
+            activeCampaignId = id;
+
+            document.getElementById('archive-view-group').style.display = 'none';
+            document.getElementById('sidebar-panel').style.display = 'none';
             
-            const title = document.getElementById('form-title').value;
-            const brand = document.getElementById('form-brand').value;
-            const year = parseInt(document.getElementById('form-year').value);
-            const image = document.getElementById('form-image').value;
-            const galleryRaw = document.getElementById('form-gallery').value;
-            const youtube = document.getElementById('form-youtube').value;
-            const tiktok = document.getElementById('form-tiktok').value;
-            const desc = document.getElementById('form-desc').value;
-            const strategiesRaw = document.getElementById('form-strategies').value;
+            const fullScreen = document.getElementById('campaign-focus-fullscreen');
+            fullScreen.style.display = 'flex';
 
-            const tags = strategiesRaw.split(',').map(s => s.trim()).filter(Boolean).slice(0, 3);
-            const strategies = strategiesRaw.split(',').map(s => s.trim()).filter(Boolean);
-            const gallery = galleryRaw ? galleryRaw.split(',').map(g => g.trim()).filter(Boolean) : [];
+            document.getElementById('fullscreen-title').innerText = item.title;
+            document.getElementById('fullscreen-subtitle').innerText = `${item.brand} (${item.year}) Architecture`;
+            document.getElementById('fullscreen-img').src = item.image;
+            document.getElementById('fullscreen-desc').innerText = item.desc;
+            
+            if (item.riskText && item.riskText.trim() !== "") {
+                document.getElementById('risk-context-container').style.display = 'block';
+                document.getElementById('fullscreen-risk-text').innerText = item.riskText;
+            } else {
+                document.getElementById('risk-context-container').style.display = 'none';
+            }
 
+            // Build tags list
+            const strategyWrapper = document.getElementById('fullscreen-strategies');
+            strategyWrapper.innerHTML = item.strategies.map(s => `<li>${s}</li>`).join('');
+
+            // Build dynamic asset grid
+            const galleryWrapper = document.getElementById('fullscreen-gallery-wrapper');
+            galleryWrapper.innerHTML = item.gallery.map(imgStr => {
+                if(!imgStr || imgStr.trim() === "") return '';
+                return `<img src="${imgStr.trim()}" onclick="openLightbox(this.src)">`;
+            }).join('');
+
+            // Metrics Update
+            document.getElementById('meta-metric-yt').innerText = item.metricYt || '0';
+            document.getElementById('meta-metric-tt').innerText = item.metricTt || '0';
+            document.getElementById('meta-metric-ig').innerText = item.metricIg || '0';
+
+            renderMediaAssets(item);
+            populateEditorFields(item);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeImmersiveView() {
+            document.getElementById('campaign-focus-fullscreen').style.display = 'none';
+            document.getElementById('archive-view-group').style.display = 'block';
+            document.getElementById('sidebar-panel').style.display = 'block';
+            activeCampaignId = null;
+            renderCampaignsGrid(campaigns);
+        }
+
+        function handleCreateCampaign(event) {
+            event.preventDefault();
+            
+            const targetYear = parseInt(document.getElementById('form-year').value);
+            if (targetYear > 2026) {
+                alert("Launch Year cannot exceed 2026.");
+                return;
+            }
+
+            const rawTags = document.getElementById('form-strategies').value.split(',').map(s => s.trim());
             const newCampaign = {
-                id: Date.now(), // Unique Timestamp Identifier Engine
-                title,
-                brand,
-                year,
-                tags,
-                image,
-                gallery,
-                youtube,
-                tiktok,
-                desc,
-                strategies,
+                id: Date.now(),
+                title: document.getElementById('form-title').value,
+                brand: document.getElementById('form-brand').value,
+                year: targetYear,
+                image: document.getElementById('form-image').value,
+                gallery: document.getElementById('form-gallery').value.split(',').filter(i => i.trim() !== ""),
+                youtube: document.getElementById('form-youtube').value,
+                tiktok: document.getElementById('form-tiktok').value,
+                desc: document.getElementById('form-desc').value,
+                strategies: rawTags,
+                tags: rawTags.slice(0, 3),
                 metricYt: "0",
                 metricTt: "0",
                 metricIg: "0",
                 riskText: ""
             };
 
-            campaignsDatabase.unshift(newCampaign);
-            saveToLocalStorage();
-            renderCampaignGrid(campaignsDatabase);
-            populateBrandDropdownFilter();
-
+            campaigns.push(newCampaign);
             document.getElementById('campaign-form').reset();
+            renderCampaignsGrid(campaigns);
         }
 
-        // Delete Database Instance Action Node
-        function handleDeleteCampaign(e, id) {
-            e.stopPropagation(); // Break bubble chain to avoid activating view modal layer
-            if(confirm("Are you sure you want to permanently delete this campaign analysis from the workspace?")) {
-                campaignsDatabase = campaignsDatabase.filter(c => c.id !== id);
-                saveToLocalStorage();
-                renderCampaignGrid(campaignsDatabase);
-                populateBrandDropdownFilter();
-                closeImmersiveView();
-            }
+        function populateEditorFields(item) {
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('edit-title').value = item.title;
+            document.getElementById('edit-brand').value = item.brand;
+            document.getElementById('edit-youtube').value = item.youtube || '';
+            document.getElementById('edit-tiktok').value = item.tiktok || '';
+            document.getElementById('edit-metric-yt').value = item.metricYt || '';
+            document.getElementById('edit-metric-tt').value = item.metricTt || '';
+            document.getElementById('edit-metric-ig').value = item.metricIg || '';
+            document.getElementById('edit-risk-text').value = item.riskText || '';
+            document.getElementById('edit-desc').value = item.desc;
         }
 
-        // Fullscreen Modal Framework Open
-        function openImmersiveView(id) {
-            const campaign = campaignsDatabase.find(c => c.id === id);
-            if(!campaign) return;
-
-            document.getElementById('archive-view-group').style.display = 'none';
-            document.getElementById('sidebar-panel').style.display = 'none';
-            
-            const targetFocus = document.getElementById('campaign-focus-fullscreen');
-            targetFocus.style.display = 'flex';
-
-            // Fill text fields
-            document.getElementById('fullscreen-title').innerText = campaign.title;
-            document.getElementById('fullscreen-subtitle').innerText = `${campaign.brand} • ${campaign.year} Strategic Breakdown`;
-            document.getElementById('fullscreen-img').src = campaign.image;
-            document.getElementById('fullscreen-desc').innerText = campaign.desc;
-
-            // Fill Custom context logic modules
-            if(campaign.riskText && campaign.riskText.trim() !== "") {
-                document.getElementById('risk-context-container').style.display = 'block';
-                document.getElementById('fullscreen-risk-text').innerText = campaign.riskText;
-            } else {
-                document.getElementById('risk-context-container').style.display = 'none';
-            }
-
-            // Fill Metrics Data
-            document.getElementById('meta-metric-yt').innerText = campaign.metricYt || "0";
-            document.getElementById('meta-metric-tt').innerText = campaign.metricTt || "0";
-            document.getElementById('meta-metric-ig').innerText = campaign.metricIg || "0";
-
-            // Map Strategy list DOM tags
-            const strategiesContainer = document.getElementById('fullscreen-strategies');
-            strategiesContainer.innerHTML = '';
-            if(campaign.strategies) {
-                campaign.strategies.forEach(strat => {
-                    const li = document.createElement('li');
-                    li.innerText = strat;
-                    strategiesContainer.appendChild(li);
-                });
-            }
-
-            // Render asset secondary graphics gallery wrapper loop
-            const galleryWrapper = document.getElementById('fullscreen-gallery-wrapper');
-            galleryWrapper.innerHTML = '';
-            if(campaign.gallery && campaign.gallery.length > 0) {
-                campaign.gallery.forEach(imgUrl => {
-                    const img = document.createElement('img');
-                    img.src = imgUrl;
-                    img.onclick = () => openLightbox(imgUrl);
-                    galleryWrapper.appendChild(img);
-                });
-                galleryWrapper.parentElement.style.display = 'block';
-            } else {
-                if(!campaign.youtube && !campaign.tiktok) {
-                    galleryWrapper.parentElement.style.display = 'none';
-                }
-            }
-
-            // Media asset links verification
-            if(campaign.youtube) {
-                document.getElementById('yt-card-root').style.display = 'flex';
-                document.getElementById('fullscreen-yt-url').href = campaign.youtube;
-            } else {
-                document.getElementById('yt-card-root').style.display = 'none';
-            }
-
-            if(campaign.tiktok) {
-                document.getElementById('tt-card-root').style.display = 'flex';
-                document.getElementById('fullscreen-tt-url').href = campaign.tiktok;
-            } else {
-                document.getElementById('tt-card-root').style.display = 'none';
-            }
-
-            // Load values to Administrative form container
-            document.getElementById('edit-id').value = campaign.id;
-            document.getElementById('edit-title').value = campaign.title;
-            document.getElementById('edit-brand').value = campaign.brand;
-            document.getElementById('edit-youtube').value = campaign.youtube || '';
-            document.getElementById('edit-tiktok').value = campaign.tiktok || '';
-            document.getElementById('edit-metric-yt').value = campaign.metricYt || '';
-            document.getElementById('edit-metric-tt').value = campaign.metricTt || '';
-            document.getElementById('edit-metric-ig').value = campaign.metricIg || '';
-            document.getElementById('edit-risk-text').value = campaign.riskText || '';
-            document.getElementById('edit-desc').value = campaign.desc;
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // Close View System Node
-        function closeImmersiveView() {
-            document.getElementById('campaign-focus-fullscreen').style.display = 'none';
-            document.getElementById('archive-view-group').style.display = 'block';
-            document.getElementById('sidebar-panel').style.display = 'block';
-        }
-
-        // Update Existing Analysis Entry Function
-        function handleUpdateCampaign(e) {
-            e.preventDefault();
+        function handleUpdateCampaign(event) {
+            event.preventDefault();
             const id = parseInt(document.getElementById('edit-id').value);
-            
-            const campIndex = campaignsDatabase.findIndex(c => c.id === id);
-            if(campIndex === -1) return;
+            const targetIdx = campaigns.findIndex(c => c.id === id);
+            if (targetIdx === -1) return;
 
-            // Extract updated fields
-            campaignsDatabase[campIndex].title = document.getElementById('edit-title').value;
-            campaignsDatabase[campIndex].brand = document.getElementById('edit-brand').value;
-            campaignsDatabase[campIndex].youtube = document.getElementById('edit-youtube').value;
-            campaignsDatabase[campIndex].tiktok = document.getElementById('edit-tiktok').value;
-            campaignsDatabase[campIndex].metricYt = document.getElementById('edit-metric-yt').value;
-            campaignsDatabase[campIndex].metricTt = document.getElementById('edit-metric-tt').value;
-            campaignsDatabase[campIndex].metricIg = document.getElementById('edit-metric-ig').value;
-            campaignsDatabase[campIndex].riskText = document.getElementById('edit-risk-text').value;
-            campaignsDatabase[campIndex].desc = document.getElementById('edit-desc').value;
+            campaigns[targetIdx].title = document.getElementById('edit-title').value;
+            campaigns[targetIdx].brand = document.getElementById('edit-brand').value;
+            campaigns[targetIdx].youtube = document.getElementById('edit-youtube').value;
+            campaigns[targetIdx].tiktok = document.getElementById('edit-tiktok').value;
+            campaigns[targetIdx].metricYt = document.getElementById('edit-metric-yt').value;
+            campaigns[targetIdx].metricTt = document.getElementById('edit-metric-tt').value;
+            campaigns[targetIdx].metricIg = document.getElementById('edit-metric-ig').value;
+            campaigns[targetIdx].riskText = document.getElementById('edit-risk-text').value;
+            campaigns[targetIdx].desc = document.getElementById('edit-desc').value;
 
-            saveToLocalStorage();
-            renderCampaignGrid(campaignsDatabase);
-            populateBrandDropdownFilter();
-            
-            // Reload the view view layer details frame dynamically
+            alert("Workspace configuration updated successfully!");
             openImmersiveView(id);
-            alert("Analysis updates successfully committed to persistent memory layout.");
         }
 
-        // Lightbox Frame Interface Management Handlers
+        function handleDeleteCampaign(event, id) {
+            event.stopPropagation();
+            if (!confirm("Are you sure you want to drop this archive data slot?")) return;
+            campaigns = campaigns.filter(c => c.id !== id);
+            if (activeCampaignId === id) {
+                closeImmersiveView();
+            } else {
+                renderCampaignsGrid(campaigns);
+            }
+        }
+
         function openLightbox(src) {
-            const box = document.getElementById('global-lightbox');
+            if(!src) return;
             document.getElementById('lightbox-target-image').src = src;
-            box.style.display = 'flex';
+            document.getElementById('global-lightbox').style.display = 'flex';
         }
 
         function closeLightbox() {
             document.getElementById('global-lightbox').style.display = 'none';
         }
+
+        // Initialize Workspace Rendering
+        window.onload = () => {
+            renderCampaignsGrid(campaigns);
+        };
     </script>
 </body></html>
